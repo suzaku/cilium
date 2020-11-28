@@ -2,6 +2,7 @@
 #
 ARG BASE_IMAGE=scratch
 
+# FROM --platform=$BUILDPLATFORM
 FROM docker.io/library/golang:1.15.5 as builder
 ARG CILIUM_SHA=""
 LABEL cilium-sha=${CILIUM_SHA}
@@ -13,9 +14,12 @@ WORKDIR /go/src/github.com/cilium/cilium/operator
 ARG NOSTRIP
 ARG LOCKDEBUG
 ARG RACE
-RUN make RACE=$RACE NOSTRIP=$NOSTRIP LOCKDEBUG=$LOCKDEBUG cilium-operator
+# TARGETARCH is an automatic platform ARG enabled by Docker BuildKit.
+#
+ARG TARGETARCH
+RUN make GOARCH=$TARGETARCH RACE=$RACE NOSTRIP=$NOSTRIP LOCKDEBUG=$LOCKDEBUG cilium-operator
 WORKDIR /go/src/github.com/cilium/cilium
-RUN make licenses-all
+RUN make GOARCH=$TARGETARCH licenses-all
 
 FROM docker.io/library/alpine:3.12.0 as certs
 ARG CILIUM_SHA=""

@@ -59,7 +59,6 @@ SKIP_K8S_CODE_GEN_CHECK ?= "true"
 JOB_BASE_NAME ?= cilium_test
 
 GO_VERSION := $(shell cat GO_VERSION)
-GOARCH := $(shell $(GO) env GOARCH)
 
 DOCKER_FLAGS ?=
 
