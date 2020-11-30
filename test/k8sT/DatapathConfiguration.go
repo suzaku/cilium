@@ -243,10 +243,8 @@ var _ = Describe("K8sDatapathConfig", func() {
 			Expect(testPodConnectivityAcrossNodes(kubectl)).Should(BeTrue(), "Connectivity test between nodes failed")
 		}, 600)
 
-		It("Check connectivity with Geneve encapsulation", func() {
-			// Geneve is currently not supported on GKE
-			SkipIfIntegration(helpers.CIIntegrationGKE)
-
+		// Geneve is currently not supported on GKE
+		SkipItIf(helpers.RunsOnGKE, "Check connectivity with Geneve encapsulation", func() {
 			deploymentManager.DeployCilium(map[string]string{
 				"tunnel": "geneve",
 			}, DeployCiliumOptionsAndDNS)
@@ -288,15 +286,8 @@ var _ = Describe("K8sDatapathConfig", func() {
 		})
 	})
 
-	Context("DirectRouting", func() {
-		BeforeEach(func() {
-			switch {
-			case helpers.IsIntegration(helpers.CIIntegrationGKE):
-			default:
-				Skip("DirectRouting without AutoDirectNodeRoutes not supported")
-			}
-		})
-
+	// DirectRouting without AutoDirectNodeRoutes not supported.
+	SkipContextIf(helpers.DoesNotRunOnGKE, "DirectRouting", func() {
 		It("Check connectivity with direct routing", func() {
 			deploymentManager.DeployCilium(map[string]string{
 				"tunnel":                 "disabled",
