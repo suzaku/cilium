@@ -23,7 +23,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/cilium/proxy/go/cilium/api"
+	cilium "github.com/cilium/proxy/go/cilium/api"
 
 	"github.com/golang/protobuf/proto"
 	log "github.com/sirupsen/logrus"

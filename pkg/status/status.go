@@ -141,6 +141,8 @@ func (c *Collector) GetStaleProbes() map[string]time.Time {
 // spawnProbe starts a goroutine which invokes the probe at the particular interval.
 func (c *Collector) spawnProbe(p *Probe) {
 	go func() {
+		timer := time.NewTimer(c.config.Interval)
+		defer timer.Stop()
 		for {
 			c.runProbe(p)
 
@@ -148,12 +150,12 @@ func (c *Collector) spawnProbe(p *Probe) {
 			if p.Interval != nil {
 				interval = p.Interval(p.consecutiveFailures)
 			}
-
+			timer.Reset(interval)
 			select {
 			case <-c.stop:
 				// collector is closed, stop looping
 				return
-			case <-time.After(interval):
+			case <-timer.C:
 				// keep looping
 			}
 		}
