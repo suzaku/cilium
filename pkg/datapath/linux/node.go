@@ -623,6 +623,8 @@ func (n *linuxNodeHandler) insertNeighbor(newNode *nodeTypes.Node, ifaceName str
 			return err
 		}
 
+		scopedLog.Debug("Inserted new node neighbor")
+
 		n.neighByNextHop[nextHopStr] = &neigh
 		if option.Config.NodePortHairpin {
 			neighborsmap.NeighRetire(nextHopIPv4)
@@ -645,14 +647,18 @@ func (n *linuxNodeHandler) deleteNeighbor(oldNode *nodeTypes.Node) error {
 		delete(n.neighByNextHop, nextHopStr)
 
 		if found {
+			scopedLog := log.WithFields(logrus.Fields{
+				logfields.IPAddr:       neigh.IP,
+				logfields.HardwareAddr: neigh.HardwareAddr,
+				logfields.LinkIndex:    neigh.LinkIndex,
+			})
+
 			if err := netlink.NeighDel(neigh); err != nil {
-				log.WithFields(logrus.Fields{
-					logfields.IPAddr:       neigh.IP,
-					logfields.HardwareAddr: neigh.HardwareAddr,
-					logfields.LinkIndex:    neigh.LinkIndex,
-				}).WithError(err).Warn("Failed to remove neighbor entry")
+				scopedLog.WithError(err).Warn("Failed to remove neighbor entry")
 				return err
 			}
+
+			scopedLog.Debug("Removed node neighbor")
 
 			if option.Config.NodePortHairpin {
 				neighborsmap.NeighRetire(neigh.IP)
