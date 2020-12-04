@@ -30,8 +30,7 @@ import (
 	"github.com/cilium/cilium/pkg/hubble/math"
 	"github.com/cilium/cilium/pkg/hubble/metrics"
 	"github.com/cilium/cilium/pkg/hubble/monitor"
-	"github.com/cilium/cilium/pkg/hubble/observer"
-	"github.com/cilium/cilium/pkg/hubble/observer/observeroption"
+	"github.com/cilium/cilium/pkg/hubble/observer2"
 	"github.com/cilium/cilium/pkg/hubble/parser"
 	"github.com/cilium/cilium/pkg/hubble/peer"
 	"github.com/cilium/cilium/pkg/hubble/peer/serviceoption"
@@ -114,20 +113,12 @@ func (d *Daemon) launchHubble() {
 		return
 	}
 
-	maxFlows, err := getHubbleEventBufferCapacity(logger)
-	if err != nil {
-		logger.WithError(err).Error("Specified capacity for Hubble events buffer is invalid")
-		return
-	}
-
-	d.hubbleObserver, err = observer.NewLocalServer(payloadParser, logger,
-		observeroption.WithMaxFlows(maxFlows),
-		observeroption.WithMonitorBuffer(option.Config.HubbleEventQueueSize),
-		observeroption.WithCiliumDaemon(d))
-	if err != nil {
-		logger.WithError(err).Error("Failed to initialize Hubble")
-		return
-	}
+	d.hubbleObserver = observer2.NewLocalObserverServer(
+		observer2.WithEventQueueSize(option.Config.HubbleEventQueueSize),
+		observer2.WithLogger(logger),
+		observer2.WithMaxFlows(option.Config.HubbleFlowBufferSize),
+		observer2.WithPayloadParser(payloadParser),
+	)
 	go d.hubbleObserver.Start()
 	d.monitorAgent.RegisterNewConsumer(monitor.NewConsumer(d.hubbleObserver))
 
