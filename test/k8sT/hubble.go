@@ -101,8 +101,7 @@ var _ = Describe("K8sHubbleTest", func() {
 			return false
 		}
 
-		err := helpers.RepeatUntilTrue(hubbleObserve, timeout)
-		Expect(err).Should(BeNil(),
+		Eventually(hubbleObserve, timeout).Should(BeTrue(),
 			"hubble observe: filter %q never matched expected string %q", filter, expected)
 	}
 
