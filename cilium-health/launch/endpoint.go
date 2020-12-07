@@ -253,17 +253,20 @@ func LaunchAsEndpoint(baseCtx context.Context,
 		}
 		healthIP               net.IP
 		ip4Address, ip6Address *net.IPNet
+		masq                   bool
 	)
 
 	if n.IPv6HealthIP != nil {
 		healthIP = n.IPv6HealthIP
 		info.Addressing.IPV6 = healthIP.String()
 		ip6Address = &net.IPNet{IP: healthIP, Mask: defaults.ContainerIPv6Mask}
+		masq = option.Config.EnableIPv6Masquerade
 	}
 	if n.IPv4HealthIP != nil {
 		healthIP = n.IPv4HealthIP
 		info.Addressing.IPV4 = healthIP.String()
 		ip4Address = &net.IPNet{IP: healthIP, Mask: defaults.ContainerIPv4Mask}
+		masq = option.Config.EnableIPv4Masquerade
 	}
 
 	if option.Config.EnableEndpointRoutes {
@@ -338,15 +341,14 @@ func LaunchAsEndpoint(baseCtx context.Context,
 		}
 	}
 
-	// Set up the endpoint routes
+	// Set up the endpoint routes.
 	if err = configureHealthRouting(info.ContainerName, epIfaceName, node.GetNodeAddressing(), mtuConfig); err != nil {
 		return nil, fmt.Errorf("Error while configuring routes: %s", err)
 	}
 
 	if option.Config.IPAM == ipamOption.IPAMENI {
 		if err := routingConfig.Configure(healthIP,
-			mtuConfig.GetDeviceMTU(),
-			option.Config.Masquerade); err != nil {
+			mtuConfig.GetDeviceMTU(), masq); err != nil {
 
 			return nil, fmt.Errorf("Error while configuring health endpoint rules and routes: %s", err)
 		}

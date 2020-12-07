@@ -324,6 +324,12 @@ const (
 	// Masquerade are the packets from endpoints leaving the host
 	Masquerade = "masquerade"
 
+	// EnableIPv4Masquerade masquerades IPv4 packets from endpoints leaving the host.
+	EnableIPv4Masquerade = "enable-ipv4-masquerade"
+
+	// EnableIPv6Masquerade masquerades IPv6 packets from endpoints leaving the host.
+	EnableIPv6Masquerade = "enable-ipv6-masquerade"
+
 	// EnableBPFClockProbe selects a more efficient source clock (jiffies vs ktime)
 	EnableBPFClockProbe = "enable-bpf-clock-probe"
 
@@ -1101,6 +1107,8 @@ var HelpFlagSections = []FlagsSection{
 		Flags: []string{
 			EgressMasqueradeInterfaces,
 			Masquerade,
+			EnableIPv4Masquerade,
+			EnableIPv6Masquerade,
 			NodePortRange,
 			EnableHostReachableServices,
 			HostReachableServicesProtos,
@@ -1632,7 +1640,8 @@ type DaemonConfig struct {
 
 	// Masquerade specifies whether or not to masquerade packets from endpoints
 	// leaving the host.
-	Masquerade             bool
+	EnableIPv4Masquerade   bool
+	EnableIPv6Masquerade   bool
 	EnableBPFMasquerade    bool
 	EnableBPFClockProbe    bool
 	EnableIPMasqAgent      bool
@@ -2558,8 +2567,6 @@ func (c *DaemonConfig) Populate() {
 	c.LogSystemLoadConfig = viper.GetBool(LogSystemLoadConfigName)
 	c.Logstash = viper.GetBool(Logstash)
 	c.LoopbackIPv4 = viper.GetString(LoopbackIPv4)
-	c.Masquerade = viper.GetBool(Masquerade)
-	c.EnableBPFMasquerade = viper.GetBool(EnableBPFMasquerade)
 	c.EnableBPFClockProbe = viper.GetBool(EnableBPFClockProbe)
 	c.EnableIPMasqAgent = viper.GetBool(EnableIPMasqAgent)
 	c.IPMasqAgentConfigPath = viper.GetString(IPMasqAgentConfigPath)
@@ -2608,6 +2615,11 @@ func (c *DaemonConfig) Populate() {
 	c.LoadBalancerDSRDispatch = viper.GetString(LoadBalancerDSRDispatch)
 	c.LoadBalancerRSSv4CIDR = viper.GetString(LoadBalancerRSSv4CIDR)
 	c.LoadBalancerRSSv6CIDR = viper.GetString(LoadBalancerRSSv6CIDR)
+
+	err = c.populateMasqueradingSettings()
+	if err != nil {
+		log.WithError(err).Fatal("Failed to populate masquerading settings")
+	}
 	c.populateLoadBalancerSettings()
 	c.populateDevices()
 
@@ -2803,6 +2815,22 @@ func (c *DaemonConfig) Populate() {
 	c.DisableCNPStatusUpdates = viper.GetBool(DisableCNPStatusUpdates)
 }
 
+func (c *DaemonConfig) populateMasqueradingSettings() error {
+	switch {
+	case viper.IsSet(Masquerade) && viper.IsSet(EnableIPv4Masquerade):
+		return fmt.Errorf("--%s and --%s (deprecated) are mutually exclusive", EnableIPv4Masquerade, Masquerade)
+	case viper.IsSet(Masquerade):
+		c.EnableIPv4Masquerade = viper.GetBool(Masquerade)
+	default:
+		c.EnableIPv4Masquerade = viper.GetBool(EnableIPv4Masquerade)
+	}
+
+	c.EnableIPv6Masquerade = viper.GetBool(EnableIPv6Masquerade)
+	c.EnableBPFMasquerade = viper.GetBool(EnableBPFMasquerade)
+
+	return nil
+}
+
 func (c *DaemonConfig) populateDevices() {
 	c.Devices = viper.GetStringSlice(Devices)
 	device := viper.GetString(Device)
@@ -2985,7 +3013,7 @@ func (c *DaemonConfig) checkMapSizeLimits() error {
 }
 
 func (c *DaemonConfig) checkIPv4NativeRoutingCIDR() error {
-	if c.IPv4NativeRoutingCIDR() == nil && c.Masquerade && c.Tunnel == TunnelDisabled &&
+	if c.IPv4NativeRoutingCIDR() == nil && c.EnableIPv4Masquerade && c.Tunnel == TunnelDisabled &&
 		c.IPAMMode() != ipamOption.IPAMENI && c.EnableIPv4 {
 		return fmt.Errorf(
 			"native routing cidr must be configured with option --%s "+
