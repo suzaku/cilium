@@ -350,6 +350,12 @@ The following metrics have been removed:
 * Label ``subnetId`` and ``availabilityZone`` in ``cilium_operator_ipam_available_ips_per_subnet`` are removed. Please
   use label ``subnet_id`` and ``availability_zone`` instead.
 
+Deprecated Options
+~~~~~~~~~~~~~~~~~~
+
+* ``bpf-compile-debug``: This option does not have any effect since 1.10
+  and is planned to be removed in 1.11.
+
 .. _1.9_upgrade_notes:
 
 1.9.1 Upgrade Notes
